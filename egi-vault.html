@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>🦑 EGI VAULT</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F0F7FF;
+    --surface: #FFFFFF;
+    --surface-alt: #EBF4FF;
+    --border: #BFD7F0;
+    --border-light: #DAEAF8;
+    --accent: #0284C7;
+    --accent-light: #E0F2FE;
+    --accent-mid: #38BDF8;
+    --text: #0F2942;
+    --text-mid: #3D6080;
+    --text-light: #6B90AB;
+    --green: #059669;
+    --green-light: #D1FAE5;
+    --orange: #D97706;
+    --orange-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --teal: #0891B2;
+    --teal-light: #CFFAFE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  #header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 0;
+    position: -webkit-sticky; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(2,132,199,0.07);
+  }
+  .header-top {
+    display: flex; justify-content: space-between; align-items: center;
+    max-width: 780px; margin: 0 auto 14px;
+  }
+  .logo { font-size: 22px; font-weight: 900; background: linear-gradient(135deg,#0284C7,#38BDF8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.5px; }
+  .logo-sub { color: var(--text-light); font-size: 10px; letter-spacing: 2px; margin-top: 2px; }
+  .stats { display: flex; gap: 18px; text-align: center; }
+  .stat-val { font-size: 20px; font-weight: 800; }
+  .stat-lbl { color: var(--text-light); font-size: 10px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; margin-left: 12px; }
+  .btn-export { background: var(--green-light); border: 1px solid var(--green); border-radius: 8px; color: var(--green); padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-import { background: var(--orange-light); border: 1px solid var(--orange); border-radius: 8px; color: var(--orange); padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .filter-bar {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px;
+    max-width: 780px; margin: 0 auto;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-bar select {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-mid); padding: 6px 10px; font-size: 12px; cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif; white-space: nowrap; appearance: none; -webkit-appearance: none;
+  }
+  .filter-bar select.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+  /* MAIN */
+  #main { max-width: 780px; margin: 0 auto; padding: 20px 16px 120px; }
+  .empty-state { text-align: center; padding: 60px 0; color: var(--text-light); }
+  .empty-icon { font-size: 52px; margin-bottom: 12px; }
+
+  /* CARD GRID */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+
+  /* EGI CARD */
+  .egi-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 12px rgba(2,132,199,0.08);
+  }
+  .egi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(2,132,199,0.18); }
+  .card-accent-bar { height: 5px; }
+  .card-body { padding: 0; }
+
+  /* EGI PHOTO */
+  .egi-photo-wrap {
+    width: 100%; aspect-ratio: 16/7; overflow: hidden;
+    background: var(--surface-alt); position: relative; cursor: pointer;
+  }
+  .egi-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .egi-photo-placeholder {
+    width: 100%; height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: var(--text-light);
+    font-size: 13px; gap: 6px;
+  }
+  .egi-photo-placeholder span { font-size: 32px; }
+  .egi-photo-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s; color: white; font-size: 13px; font-weight: 700; gap: 6px;
+  }
+  .egi-photo-wrap:hover .egi-photo-overlay { opacity: 1; }
+
+  .card-info { padding: 14px 16px; }
+  .card-name { color: var(--text); font-weight: 800; font-size: 17px; margin-bottom: 3px; }
+  .card-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .card-type { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+  .card-sep { color: var(--border); font-size: 11px; }
+  .card-depth { color: var(--text-light); font-size: 11px; }
+  .card-color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .color-swatch { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid rgba(0,0,0,0.12); flex-shrink: 0; }
+  .color-swatch.rainbow { background: linear-gradient(135deg,#EF4444,#F59E0B,#10B981,#3B82F6,#8B5CF6); }
+  .card-color-name { color: var(--text-mid); font-weight: 700; font-size: 14px; }
+  .card-color-var { color: var(--text-light); font-size: 12px; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .tag-size { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(2,132,199,0.2); }
+  .tag-time { background: var(--green-light); color: var(--green); border: 1px solid rgba(5,150,105,0.2); }
+  .tag-weather { background: var(--orange-light); color: var(--orange); border: 1px solid rgba(217,119,6,0.2); }
+  .tag-sea { background: var(--teal-light); color: var(--teal); border: 1px solid rgba(8,145,178,0.2); }
+  .card-memo { background: var(--surface-alt); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px 10px; color: var(--text-mid); font-size: 12px; margin-bottom: 10px; }
+  .card-actions { display: flex; gap: 8px; }
+  .btn-catches { flex: 1; background: var(--accent-light); border: 1px solid var(--accent-mid); border-radius: 8px; color: var(--accent); padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-edit { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; color: var(--text-mid); padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-delete { background: var(--red-light); border: 1px solid #FCA5A5; border-radius: 8px; color: var(--red); padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* CATCHES SECTION */
+  .catches-section { border-top: 1px solid var(--border-light); padding: 14px 16px; }
+  .catches-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .catches-title { color: var(--text-light); font-size: 13px; font-weight: 700; }
+  .btn-add-catch { background: linear-gradient(135deg,#0284C7,#38BDF8); border: none; border-radius: 8px; color: white; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .catches-empty { color: var(--text-light); font-size: 13px; text-align: center; padding: 12px 0; }
+  .catch-list { display: flex; flex-direction: column; gap: 8px; }
+  .catch-item { background: var(--surface-alt); border: 1px solid var(--border-light); border-radius: 10px; padding: 10px 12px; display: flex; gap: 12px; align-items: center; }
+  .catch-photo { width: 58px; height: 58px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+  .catch-size { color: var(--text); font-weight: 800; font-size: 16px; }
+  .catch-date { color: var(--text-light); font-size: 12px; }
+  .catch-note { color: var(--text-mid); font-size: 12px; }
+
+  /* FAB */
+  #fab {
+    position: fixed; bottom: 28px; right: 20px;
+    background: linear-gradient(135deg,#0284C7,#38BDF8);
+    border: none; border-radius: 20px; color: white;
+    font-weight: 800; font-size: 15px; padding: 15px 24px;
+    cursor: pointer; box-shadow: 0 8px 28px rgba(2,132,199,0.35);
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  #fab:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(2,132,199,0.45); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none !important;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15,41,66,0.4);
+    -webkit-align-items: flex-start; align-items: flex-start;
+    -webkit-justify-content: center; justify-content: center;
+    z-index: 200; padding: 16px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .modal-overlay.is-open {
+    display: -webkit-flex !important;
+    display: flex !important;
+  }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 28px; width: 100%; max-width: 540px; margin: auto; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(2,132,199,0.15);
+  }
+  .modal-title { color: var(--text); font-size: 20px; font-weight: 800; margin-bottom: 22px; }
+  .section-label {
+    display: block; color: var(--text-light); font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 7px;
+  }
+  .form-section { margin-bottom: 18px; }
+  .form-input {
+    width: 100%; background: var(--surface-alt); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  textarea.form-input { resize: vertical; min-height: 60px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sel-btn {
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    background: var(--surface-alt); border: 1px solid var(--border);
+    color: var(--text-mid); font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.15s;
+  }
+  .sel-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .color-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+  .color-btn {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-mid);
+    font-size: 13px; font-family: 'Noto Sans JP', sans-serif; transition: all 0.15s;
+  }
+  .color-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn-cancel {
+    flex: 1; padding: 12px 0; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text-mid); cursor: pointer;
+    font-weight: 600; font-family: 'Noto Sans JP', sans-serif; font-size: 14px;
+  }
+  .btn-submit {
+    flex: 2; padding: 12px 0; border-radius: 10px; border: none;
+    background: linear-gradient(135deg,#0284C7,#38BDF8); color: white;
+    cursor: pointer; font-weight: 700; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-submit-green {
+    flex: 2; padding: 12px 0; border-radius: 10px; border: none;
+    background: linear-gradient(135deg,#059669,#34D399); color: white;
+    cursor: pointer; font-weight: 700; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-submit-green:disabled { background: var(--border-light); color: var(--text-light); cursor: not-allowed; }
+
+  /* Photo upload area */
+  .photo-upload-area {
+    width: 100%; border: 2px dashed var(--border); border-radius: 10px;
+    background: var(--surface-alt); padding: 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; gap: 6px; color: var(--text-light); font-size: 14px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .photo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+  .photo-upload-area .upload-icon { font-size: 28px; }
+  .photo-preview { width: 100%; border-radius: 10px; margin-top: 10px; max-height: 180px; object-fit: cover; border: 1px solid var(--border); }
+  .photo-remove { margin-top: 6px; background: var(--red-light); border: 1px solid #FCA5A5; border-radius: 6px; color: var(--red); padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+  /* Lightbox */
+  #lightbox {
+    display: none !important;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+    z-index: 500; cursor: zoom-out;
+  }
+  #lightbox.is-open {
+    display: -webkit-flex !important;
+    display: flex !important;
+  }
+  #lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  #lightbox-close { position: absolute; top: 20px; right: 24px; color: white; font-size: 28px; cursor: pointer; background: none; border: none; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: white; padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; z-index: 600;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .card-grid { grid-template-columns: 1fr; }
+    .header-top { flex-wrap: wrap; gap: 8px; }
+    .stats { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<script>
+// iOS Safari modal fix - run immediately
+document.addEventListener('DOMContentLoaded', function() {
+  ['egi-modal','catch-modal','lightbox'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.style.cssText = 'display:none !important'; }
+  });
+});
+</script>
+
+<div id="header">
+  <div class="header-top">
+    <div>
+      <div class="logo">🦑 EGI VAULT</div>
+      <div class="logo-sub">エギ管理システム</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="stats">
+        <div><div class="stat-val" id="stat-egis" style="color:#0284C7">0</div><div class="stat-lbl">エギ</div></div>
+        <div><div class="stat-val" id="stat-catches" style="color:#059669">0</div><div class="stat-lbl">釣果</div></div>
+        <div id="stat-best-wrap" style="display:none"><div class="stat-val" id="stat-best" style="color:#D97706">-</div><div class="stat-lbl">最大</div></div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-export" onclick="exportJSON()">⬇ 保存</button>
+        <button class="btn-import" onclick="document.getElementById('import-file').click()">⬆ 読込</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+      </div>
+    </div>
+  </div>
+  <div class="filter-bar" id="filter-bar"></div>
+</div>
+
+<div id="main">
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon">🎣</div>
+    <div>まだエギが登録されていません</div>
+  </div>
+  <div class="card-grid" id="card-grid"></div>
+</div>
+
+<button id="fab" onclick="openAddEgiModal()">＋ エギを追加</button>
+
+<!-- Lightbox -->
+<div id="lightbox" style="display:none" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Add/Edit Egi Modal -->
+<div class="modal-overlay" id="egi-modal" style="display:none" onclick="if(event.target===this)closeEgiModal()">
+  <div class="modal">
+    <div class="modal-title" id="egi-modal-title">🦑 エギを追加</div>
+
+    <div class="form-section">
+      <label class="section-label">エギの写真</label>
+      <div class="photo-upload-area" id="egi-photo-area" onclick="document.getElementById('egi-photo-input').click()">
+        <span class="upload-icon">📷</span>
+        <span id="egi-photo-label">タップして写真を選択</span>
+      </div>
+      <input type="file" id="egi-photo-input" accept="image/*" style="display:none" onchange="handleEgiPhoto(event)">
+      <img id="egi-photo-preview" class="photo-preview" style="display:none" src="" alt="">
+      <button class="photo-remove" id="egi-photo-remove" style="display:none" onclick="removeEgiPhoto()">✕ 写真を削除</button>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">エギの名前</label>
+      <input type="text" class="form-input" id="f-name" placeholder="例: 春イカ用エース、常夜灯専用 など">
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">エギの種類</label>
+      <div class="btn-row" id="f-type-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">タイプ</label>
+      <div class="btn-row" id="f-depth-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">サイズ</label>
+      <div class="btn-row" id="f-size-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">メインカラー</label>
+      <div class="color-grid" id="f-color-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">カラーバリエーション</label>
+      <div class="btn-row" id="f-variation-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">釣れる時間帯（複数可）</label>
+      <div class="btn-row" id="f-time-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">釣れる天気（複数可）</label>
+      <div class="btn-row" id="f-weather-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">海の状態（複数可）</label>
+      <div class="btn-row" id="f-sea-btns"></div>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">メモ</label>
+      <textarea class="form-input" id="f-memo" placeholder="使い方のコツなど..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEgiModal()">キャンセル</button>
+      <button class="btn-submit" onclick="saveEgi()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Catch Modal -->
+<div class="modal-overlay" id="catch-modal" style="display:none" onclick="if(event.target===this)closeCatchModal()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">🦑 釣果を記録</div>
+
+    <div class="form-section">
+      <label class="section-label">イカのサイズ (cm)</label>
+      <input type="number" class="form-input" id="c-size" placeholder="例: 18.5" style="font-size:16px;font-weight:700;">
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">写真</label>
+      <div class="photo-upload-area" id="catch-photo-area" onclick="document.getElementById('catch-photo-input').click()">
+        <span class="upload-icon">📷</span>
+        <span id="catch-photo-label">タップして写真を選択</span>
+      </div>
+      <input type="file" id="catch-photo-input" accept="image/*" style="display:none" onchange="handleCatchPhoto(event)">
+      <img id="catch-photo-preview" class="photo-preview" style="display:none" src="" alt="">
+      <button class="photo-remove" id="catch-photo-remove" style="display:none" onclick="removeCatchPhoto()">✕ 写真を削除</button>
+    </div>
+
+    <div class="form-section">
+      <label class="section-label">メモ</label>
+      <textarea class="form-input" id="c-note" placeholder="場所、状況など..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCatchModal()">キャンセル</button>
+      <button class="btn-submit-green" id="catch-submit-btn" onclick="saveCatch()" disabled>記録する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA DEFINITIONS
+// ============================================================
+const EGI_TYPES = ['エギ王 K','ライブ','サーチ'];
+const EGI_DEPTHS = ['ベーシック','シャロー','スーパーシャロー'];
+const SIZES = ['1.5号','2.0号','2.5号','3.0号','3.5号','4.0号'];
+const COLORS = [
+  {id:'purple',label:'パープル',hex:'#8B5CF6'},
+  {id:'red',label:'レッド',hex:'#EF4444'},
+  {id:'pink',label:'ピンク',hex:'#EC4899'},
+  {id:'gold',label:'ゴールド',hex:'#F59E0B'},
+  {id:'silver',label:'シルバー',hex:'#9CA3AF'},
+  {id:'rainbow',label:'虹',hex:'rainbow'},
+  {id:'490glow',label:'490グロー',hex:'#6EE7B7'},
+  {id:'neobra-red',label:'ネオブラレッド',hex:'#DC2626'},
+  {id:'neobra-blue',label:'ネオブラブルー',hex:'#2563EB'},
+  {id:'neobra-green',label:'ネオブラグリーン',hex:'#16A34A'},
+  {id:'glow',label:'夜光',hex:'#A3E635'},
+  {id:'keimura',label:'ケイムラ',hex:'#A78BFA'},
+];
+const COLOR_VARIATIONS = ['無し','490','ネオレッド','ネオブルー','ネオグリーン','夜行','ケイムラ'];
+const TIME_ZONES = [
+  {id:'dawn',label:'夜明け',icon:'🌅'},
+  {id:'morning',label:'朝',icon:'☀️'},
+  {id:'day',label:'昼',icon:'🌞'},
+  {id:'evening',label:'夕方',icon:'🌇'},
+  {id:'night',label:'夜',icon:'🌙'},
+];
+const WEATHERS = [
+  {id:'sunny',label:'晴れ',icon:'☀️'},
+  {id:'cloudy',label:'曇り',icon:'☁️'},
+  {id:'rainy',label:'雨',icon:'🌧️'},
+  {id:'wind',label:'風強',icon:'💨'},
+  {id:'fog',label:'霧',icon:'🌫️'},
+];
+const SEA_CONDITIONS = [
+  {id:'clear',label:'澄み',icon:'🔵'},
+  {id:'slightly-muddy',label:'やや濁り',icon:'🟡'},
+  {id:'muddy',label:'濁り',icon:'🟤'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let egis = [];
+let filter = {type:'all',depth:'all',time:'all',weather:'all',sea:'all'};
+let editingId = null;
+let catchTargetId = null;
+let egiPhotoData = null;
+let catchPhotoData = null;
+
+// ============================================================
+// LOCAL STORAGE
+// ============================================================
+function save() {
+  localStorage.setItem('egi-vault-data', JSON.stringify(egis));
+  updateStats();
+  renderCards();
+}
+
+function load() {
+  const raw = localStorage.getItem('egi-vault-data');
+  if (raw) { try { egis = JSON.parse(raw); } catch(e) { egis = []; } }
+  else { egis = []; }
+}
+
+// ============================================================
+// JSON EXPORT / IMPORT
+// ============================================================
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(egis, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `egi-vault-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('💾 データを保存しました');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        egis = data;
+        save();
+        showToast('✅ データを読み込みました');
+      } else { showToast('❌ ファイル形式が正しくありません'); }
+    } catch(err) { showToast('❌ 読み込みに失敗しました'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// FILTER BAR
+// ============================================================
+function buildFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = '';
+  const filters = [
+    {key:'type', options:[{v:'all',l:'全種類'},...EGI_TYPES.map(t=>({v:t,l:t}))]},
+    {key:'depth', options:[{v:'all',l:'全タイプ'},...EGI_DEPTHS.map(d=>({v:d,l:d}))]},
+    {key:'time', options:[{v:'all',l:'全時間'},...TIME_ZONES.map(t=>({v:t.id,l:t.icon+t.label}))]},
+    {key:'weather', options:[{v:'all',l:'全天気'},...WEATHERS.map(w=>({v:w.id,l:w.icon+w.label}))]},
+    {key:'sea', options:[{v:'all',l:'全海況'},...SEA_CONDITIONS.map(s=>({v:s.id,l:s.icon+s.label}))]},
+  ];
+  filters.forEach(({key,options}) => {
+    const sel = document.createElement('select');
+    if (filter[key] !== 'all') sel.classList.add('active');
+    options.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.l;
+      if (o.v === filter[key]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => {
+      filter[key] = sel.value;
+      sel.classList.toggle('active', sel.value !== 'all');
+      renderCards();
+    };
+    bar.appendChild(sel);
+  });
+}
+
+// ============================================================
+// RENDER CARDS
+// ============================================================
+function swatchStyle(colorId) {
+  const c = COLORS.find(x=>x.id===colorId);
+  if (!c) return '';
+  if (c.id === 'rainbow') return 'background:linear-gradient(135deg,#EF4444,#F59E0B,#10B981,#3B82F6,#8B5CF6)';
+  return `background:${c.hex}`;
+}
+
+function accentBar(colorId) {
+  const c = COLORS.find(x=>x.id===colorId);
+  if (!c) return '#0284C7';
+  if (c.id === 'rainbow') return 'linear-gradient(90deg,#EF4444,#F59E0B,#10B981,#3B82F6,#8B5CF6)';
+  return c.hex;
+}
+
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  const empty = document.getElementById('empty-state');
+
+  const filtered = egis.filter(e => {
+    if (filter.type !== 'all' && e.type !== filter.type) return false;
+    if (filter.depth !== 'all' && e.depth !== filter.depth) return false;
+    if (filter.time !== 'all' && !(e.timezones||[]).includes(filter.time)) return false;
+    if (filter.weather !== 'all' && !(e.weathers||[]).includes(filter.weather)) return false;
+    if (filter.sea !== 'all' && !(e.seaConditions||[]).includes(filter.sea)) return false;
+    return true;
+  });
+
+  empty.style.display = filtered.length === 0 ? 'block' : 'none';
+  grid.innerHTML = '';
+
+  filtered.forEach(egi => {
+    const card = document.createElement('div');
+    card.className = 'egi-card';
+    const bar = accentBar(egi.color);
+
+    const timeTags = (egi.timezones||[]).map(t => { const x=TIME_ZONES.find(z=>z.id===t); return x?`<span class="tag tag-time">${x.icon} ${x.label}</span>`:''; }).join('');
+    const weatherTags = (egi.weathers||[]).map(w => { const x=WEATHERS.find(z=>z.id===w); return x?`<span class="tag tag-weather">${x.icon} ${x.label}</span>`:''; }).join('');
+    const seaTags = (egi.seaConditions||[]).map(s => { const x=SEA_CONDITIONS.find(z=>z.id===s); return x?`<span class="tag tag-sea">${x.icon} ${x.label}</span>`:''; }).join('');
+    const colorName = (COLORS.find(c=>c.id===egi.color)||{label:egi.color}).label;
+    const varLabel = egi.colorVariation && egi.colorVariation !== '無し' ? `<span class="card-color-var">/ ${egi.colorVariation}</span>` : '';
+    const memoHtml = egi.memo ? `<div class="card-memo">📝 ${egi.memo}</div>` : '';
+    const nameHtml = egi.name ? `<div class="card-name">${egi.name}</div>` : '';
+
+    // EGI photo
+    let photoHtml = '';
+    if (egi.photo) {
+      photoHtml = `<div class="egi-photo-wrap" onclick="openLightbox('${egi.id}','egi')">
+        <img src="${egi.photo}" alt="エギ写真">
+        <div class="egi-photo-overlay">🔍 拡大</div>
+      </div>`;
+    } else {
+      photoHtml = `<div class="egi-photo-wrap" onclick="openAddEgiModalEdit('${egi.id}')" style="aspect-ratio:16/5;cursor:pointer;">
+        <div class="egi-photo-placeholder"><span>📷</span><span style="font-size:11px">写真を追加</span></div>
+      </div>`;
+    }
+
+    // catches
+    const catchCount = (egi.catches||[]).length;
+    let catchesHtml = '';
+    if (egi._showCatches) {
+      const items = (egi.catches||[]).map(c => {
+        const photoEl = c.photo ? `<img class="catch-photo" src="${c.photo}" alt="" onclick="openLightboxDirect('${c.photo}')">` : '';
+        return `<div class="catch-item">${photoEl}<div><div class="catch-size">🦑 ${c.size}cm</div><div class="catch-date">${c.date}</div>${c.note?`<div class="catch-note">${c.note}</div>`:''}</div></div>`;
+      }).join('');
+      catchesHtml = `<div class="catches-section">
+        <div class="catches-header">
+          <span class="catches-title">釣果記録</span>
+          <button class="btn-add-catch" onclick="openCatchModal('${egi.id}')">＋ 釣果追加</button>
+        </div>
+        ${catchCount === 0 ? '<div class="catches-empty">まだ釣果記録がありません</div>' : `<div class="catch-list">${items}</div>`}
+      </div>`;
+    }
+
+    card.innerHTML = `
+      <div class="card-accent-bar" style="background:${bar}"></div>
+      <div class="card-body">
+        ${photoHtml}
+        <div class="card-info">
+          ${nameHtml}
+          <div class="card-meta">
+            <span class="card-type">${egi.type}</span>
+            <span class="card-sep">·</span>
+            <span class="card-depth">${egi.depth}</span>
+          </div>
+          <div class="card-color-row">
+            <div class="color-swatch ${egi.color==='rainbow'?'rainbow':''}" style="${egi.color!=='rainbow'?swatchStyle(egi.color):''}"></div>
+            <span class="card-color-name">${colorName}</span>
+            ${varLabel}
+          </div>
+          <div class="tag-row">
+            <span class="tag tag-size">${egi.size}</span>
+            ${timeTags}${weatherTags}${seaTags}
+          </div>
+          ${memoHtml}
+          <div class="card-actions">
+            <button class="btn-catches" onclick="toggleCatches('${egi.id}')">
+              ${egi._showCatches ? '▲ 閉じる' : `🦑 釣果 ${catchCount}`}
+            </button>
+            <button class="btn-edit" onclick="openAddEgiModalEdit('${egi.id}')">✏️</button>
+            <button class="btn-delete" onclick="deleteEgi('${egi.id}')">削除</button>
+          </div>
+        </div>
+        ${catchesHtml}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function toggleCatches(id) {
+  const egi = egis.find(e=>e.id===id);
+  if (egi) { egi._showCatches = !egi._showCatches; renderCards(); }
+}
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  document.getElementById('stat-egis').textContent = egis.length;
+  const total = egis.reduce((s,e)=>s+(e.catches||[]).length, 0);
+  document.getElementById('stat-catches').textContent = total;
+  const sizes = egis.flatMap(e=>(e.catches||[]).map(c=>c.size)).filter(Boolean);
+  if (sizes.length > 0) {
+    document.getElementById('stat-best').textContent = Math.max(...sizes) + 'cm';
+    document.getElementById('stat-best-wrap').style.display = '';
+  } else {
+    document.getElementById('stat-best-wrap').style.display = 'none';
+  }
+}
+
+// ============================================================
+// EGI MODAL
+// ============================================================
+function buildModalButtons() {
+  function makeBtns(containerId, items, field, multi=false) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    items.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'sel-btn';
+      btn.textContent = typeof item === 'string' ? item : (item.icon ? item.icon+' '+item.label : item.label);
+      btn.dataset.val = typeof item === 'string' ? item : item.id;
+      btn.onclick = () => {
+        if (multi) { btn.classList.toggle('active'); }
+        else { el.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+      };
+      el.appendChild(btn);
+    });
+  }
+  makeBtns('f-type-btns', EGI_TYPES, 'type');
+  makeBtns('f-depth-btns', EGI_DEPTHS, 'depth');
+  makeBtns('f-size-btns', SIZES, 'size');
+  makeBtns('f-variation-btns', COLOR_VARIATIONS, 'colorVariation');
+  makeBtns('f-time-btns', TIME_ZONES, 'timezones', true);
+  makeBtns('f-weather-btns', WEATHERS, 'weathers', true);
+  makeBtns('f-sea-btns', SEA_CONDITIONS, 'seaConditions', true);
+
+  // Color buttons
+  const colorEl = document.getElementById('f-color-btns');
+  colorEl.innerHTML = '';
+  COLORS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.dataset.val = c.id;
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c.id==='rainbow'?' rainbow':'');
+    if (c.id !== 'rainbow') sw.style.background = c.hex;
+    btn.appendChild(sw);
+    btn.appendChild(document.createTextNode(c.label));
+    btn.onclick = () => { colorEl.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); };
+    colorEl.appendChild(btn);
+  });
+}
+
+function getActiveVal(containerId) {
+  const active = document.querySelector(`#${containerId} .active`);
+  return active ? active.dataset.val : null;
+}
+function getActiveVals(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .active`)].map(b=>b.dataset.val);
+}
+function setActive(containerId, val) {
+  document.querySelectorAll(`#${containerId} [data-val]`).forEach(b => {
+    b.classList.toggle('active', b.dataset.val === val);
+  });
+}
+function setActiveMulti(containerId, vals) {
+  document.querySelectorAll(`#${containerId} [data-val]`).forEach(b => {
+    b.classList.toggle('active', vals.includes(b.dataset.val));
+  });
+}
+
+function openAddEgiModal() {
+  editingId = null;
+  egiPhotoData = null;
+  buildModalButtons();
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-memo').value = '';
+  document.getElementById('egi-photo-preview').style.display = 'none';
+  document.getElementById('egi-photo-remove').style.display = 'none';
+  document.getElementById('egi-photo-label').textContent = 'タップして写真を選択';
+  // defaults
+  setActive('f-type-btns', EGI_TYPES[0]);
+  setActive('f-depth-btns', EGI_DEPTHS[0]);
+  setActive('f-size-btns', SIZES[2]);
+  setActive('f-color-btns', COLORS[0].id);
+  setActive('f-variation-btns', '無し');
+  document.getElementById('egi-modal-title').textContent = '🦑 エギを追加';
+  document.querySelector('#egi-modal .btn-submit').textContent = '追加する';
+  var em=document.getElementById('egi-modal'); em.style.display=''; em.classList.add('is-open'); document.body.style.overflow='hidden';
+}
+
+function openAddEgiModalEdit(id) {
+  const egi = egis.find(e=>e.id===id);
+  if (!egi) return;
+  editingId = id;
+  egiPhotoData = egi.photo || null;
+  buildModalButtons();
+  document.getElementById('f-name').value = egi.name || '';
+  document.getElementById('f-memo').value = egi.memo || '';
+  setActive('f-type-btns', egi.type);
+  setActive('f-depth-btns', egi.depth);
+  setActive('f-size-btns', egi.size);
+  setActive('f-color-btns', egi.color);
+  setActive('f-variation-btns', egi.colorVariation || '無し');
+  setActiveMulti('f-time-btns', egi.timezones||[]);
+  setActiveMulti('f-weather-btns', egi.weathers||[]);
+  setActiveMulti('f-sea-btns', egi.seaConditions||[]);
+  if (egi.photo) {
+    document.getElementById('egi-photo-preview').src = egi.photo;
+    document.getElementById('egi-photo-preview').style.display = 'block';
+    document.getElementById('egi-photo-remove').style.display = 'inline-block';
+    document.getElementById('egi-photo-label').textContent = '写真を変更';
+  } else {
+    document.getElementById('egi-photo-preview').style.display = 'none';
+    document.getElementById('egi-photo-remove').style.display = 'none';
+    document.getElementById('egi-photo-label').textContent = 'タップして写真を選択';
+  }
+  document.getElementById('egi-modal-title').textContent = '✏️ エギを編集';
+  document.querySelector('#egi-modal .btn-submit').textContent = '保存する';
+  var em=document.getElementById('egi-modal'); em.style.display=''; em.classList.add('is-open'); document.body.style.overflow='hidden';
+}
+
+function closeEgiModal() {
+  var em=document.getElementById('egi-modal'); em.classList.remove('is-open'); em.style.display='none'; document.body.style.overflow='';
+  document.getElementById('egi-photo-input').value = '';
+}
+
+function handleEgiPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    egiPhotoData = ev.target.result;
+    document.getElementById('egi-photo-preview').src = egiPhotoData;
+    document.getElementById('egi-photo-preview').style.display = 'block';
+    document.getElementById('egi-photo-remove').style.display = 'inline-block';
+    document.getElementById('egi-photo-label').textContent = '写真を変更';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeEgiPhoto() {
+  egiPhotoData = null;
+  document.getElementById('egi-photo-preview').style.display = 'none';
+  document.getElementById('egi-photo-remove').style.display = 'none';
+  document.getElementById('egi-photo-label').textContent = 'タップして写真を選択';
+  document.getElementById('egi-photo-input').value = '';
+}
+
+function saveEgi() {
+  const name = document.getElementById('f-name').value.trim();
+  const type = getActiveVal('f-type-btns') || EGI_TYPES[0];
+  const depth = getActiveVal('f-depth-btns') || EGI_DEPTHS[0];
+  const size = getActiveVal('f-size-btns') || SIZES[2];
+  const color = getActiveVal('f-color-btns') || COLORS[0].id;
+  const colorVariation = getActiveVal('f-variation-btns') || '無し';
+  const timezones = getActiveVals('f-time-btns');
+  const weathers = getActiveVals('f-weather-btns');
+  const seaConditions = getActiveVals('f-sea-btns');
+  const memo = document.getElementById('f-memo').value.trim();
+
+  if (editingId) {
+    const idx = egis.findIndex(e=>e.id===editingId);
+    if (idx !== -1) {
+      egis[idx] = {...egis[idx], name, type, depth, size, color, colorVariation, timezones, weathers, seaConditions, memo, photo: egiPhotoData};
+    }
+    showToast('✅ エギを更新しました');
+  } else {
+    egis.unshift({id: Date.now().toString(), name, type, depth, size, color, colorVariation, timezones, weathers, seaConditions, memo, photo: egiPhotoData, catches:[], _showCatches: false});
+    showToast('✅ エギを追加しました');
+  }
+  save();
+  closeEgiModal();
+}
+
+function deleteEgi(id) {
+  if (!confirm('このエギを削除しますか？')) return;
+  egis = egis.filter(e=>e.id!==id);
+  save();
+  showToast('🗑️ 削除しました');
+}
+
+// ============================================================
+// CATCH MODAL
+// ============================================================
+function openCatchModal(egiId) {
+  catchTargetId = egiId;
+  catchPhotoData = null;
+  document.getElementById('c-size').value = '';
+  document.getElementById('c-note').value = '';
+  document.getElementById('catch-photo-preview').style.display = 'none';
+  document.getElementById('catch-photo-remove').style.display = 'none';
+  document.getElementById('catch-photo-label').textContent = 'タップして写真を選択';
+  document.getElementById('catch-submit-btn').disabled = true;
+  var cm=document.getElementById('catch-modal'); cm.style.display=''; cm.classList.add('is-open'); document.body.style.overflow='hidden';
+}
+
+function closeCatchModal() {
+  var cm=document.getElementById('catch-modal'); cm.classList.remove('is-open'); cm.style.display='none'; document.body.style.overflow='';
+  document.getElementById('catch-photo-input').value = '';
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'c-size') {
+    document.getElementById('catch-submit-btn').disabled = !e.target.value;
+  }
+});
+
+function handleCatchPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    catchPhotoData = ev.target.result;
+    document.getElementById('catch-photo-preview').src = catchPhotoData;
+    document.getElementById('catch-photo-preview').style.display = 'block';
+    document.getElementById('catch-photo-remove').style.display = 'inline-block';
+    document.getElementById('catch-photo-label').textContent = '写真を変更';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCatchPhoto() {
+  catchPhotoData = null;
+  document.getElementById('catch-photo-preview').style.display = 'none';
+  document.getElementById('catch-photo-remove').style.display = 'none';
+  document.getElementById('catch-photo-label').textContent = 'タップして写真を選択';
+  document.getElementById('catch-photo-input').value = '';
+}
+
+function saveCatch() {
+  const size = parseFloat(document.getElementById('c-size').value);
+  if (!size) return;
+  const note = document.getElementById('c-note').value.trim();
+  const date = new Date().toLocaleDateString('ja-JP');
+  const egi = egis.find(e=>e.id===catchTargetId);
+  if (egi) {
+    if (!egi.catches) egi.catches = [];
+    egi.catches.push({size, note, photo: catchPhotoData, date});
+    egi._showCatches = true;
+  }
+  save();
+  closeCatchModal();
+  showToast(`✅ ${size}cmの釣果を記録しました`);
+}
+
+// ============================================================
+// LIGHTBOX
+// ============================================================
+function openLightbox(egiId, type) {
+  const egi = egis.find(e=>e.id===egiId);
+  if (!egi || !egi.photo) return;
+  document.getElementById('lightbox-img').src = egi.photo;
+  var lb=document.getElementById('lightbox'); lb.style.display=''; lb.classList.add('is-open');
+}
+
+function openLightboxDirect(src) {
+  document.getElementById('lightbox-img').src = src;
+  var lb=document.getElementById('lightbox'); lb.style.display=''; lb.classList.add('is-open');
+}
+
+function closeLightbox() {
+  var lb=document.getElementById('lightbox'); lb.classList.remove('is-open'); lb.style.display='none';
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+load();
+buildFilterBar();
+updateStats();
+renderCards();
+</script>
+</body>
+</html>
